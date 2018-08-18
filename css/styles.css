@@ -290,3 +290,50 @@ nav h1 a {
 #restaurant-hours td {
   color: #666;
 }
+
+
+/* ====================== Home page media queries ====================== */
+
+@media screen and (max-width: 800px) {
+  #restaurants-list li,
+  #restaurants-list li:nth-child(3n) {
+    margin: 15px 15px 0 0;
+    width: calc((100% - 15px) / 2);
+  }
+
+  #restaurants-list li:nth-child(2n) {
+    margin: 15px 0 0 0;
+  }
+}
+
+@media screen and (max-width: 550px) {
+  #restaurants-list li,
+  #restaurants-list li:nth-child(2n),
+  #restaurants-list li:nth-child(3n) {
+    margin: 15px 0 0 0;
+    width: 100%;
+  }
+
+  #cuisines-select {
+    margin: 0 0 10px 143px;
+  }
+}
+
+
+@media screen and (max-width: 360px) {
+  .filter-options {
+    display: block;
+    text-align: center;
+    padding: 20px 0 10px;
+  }
+
+  #cuisines-select {
+    margin-left: 0;
+  }
+
+  nav h1 a {
+    font-size: 12pt;
+    letter-spacing: 5px;
+  }
+}
+
