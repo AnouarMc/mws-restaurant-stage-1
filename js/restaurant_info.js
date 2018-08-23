@@ -33,7 +33,7 @@ initMap = () => {
       DBHelper.mapMarkerForRestaurant(self.restaurant, self.newMap);
     }
   });
-}  
+}
  
 /* window.initMap = () => {
   fetchRestaurantFromURL((error, restaurant) => {
@@ -183,6 +183,7 @@ fillBreadcrumb = (restaurant=self.restaurant) => {
   const li = document.createElement('li');
   li.innerHTML = restaurant.name;
   breadcrumb.appendChild(li);
+  fixHeader();
 }
 
 /**
@@ -200,3 +201,16 @@ getParameterByName = (name, url) => {
     return '';
   return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
+
+/**
+ * Fix header when its text breaks on multiple lines
+ */
+
+fixHeader = () => {
+  const height = document.getElementsByTagName('header')[0].offsetHeight;
+  document.getElementById('map-container').style.marginTop = height + 'px';
+}
+
+window.onresize = function(event) {
+  fixHeader();
+};
