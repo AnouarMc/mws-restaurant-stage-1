@@ -169,6 +169,7 @@ createRestaurantHTML = (restaurant) => {
   const image = document.createElement('img');
   image.className = 'restaurant-img';
   image.src = DBHelper.imageUrlForRestaurant(restaurant);
+  image.alt = restaurant.name;
 
   const f = restaurant.id;
   image.srcset = `./img/${f}.jpg 800w, ./img/${f}-600.jpg 600w, ./img/${f}-400.jpg 400w, ./img/${f}-300.jpg 300w`;
