@@ -22,30 +22,78 @@ self.addEventListener('install', event => {
 
 const dbPromise = idb.open('restaurant-reviews-dbv1', 1, upgradeDb => {
 	upgradeDb.createObjectStore('restaurants');
+	upgradeDb.createObjectStore('syncFavoriteStore')
 });
 
 
 self.addEventListener('fetch', event => {
-	if(event.request.url.endsWith('restaurants')) {
-		event.respondWith(responseFromIdb(event.request));
+	if(event.request.method === 'GET') {
+		if(event.request.url.endsWith('restaurants')) {
+			event.respondWith(responseFromIdb(event.request));
+		}
+		else {
+			event.respondWith(responseFromCache(event.request));
+		}
 	}
-	else {
-		event.respondWith(responseFromCache(event.request));
+	else { 	//put, post
+	/*
+		fetch(event.request).then(response => { return response.json(); })
+		.then(restaurant => {
+			dbPromise.then(db => {
+				const tx = db.transaction('restaurants', 'readwrite');
+				const store = tx.objectStore('restaurants');
+				store.put(restaurant, restaurant.id);
+			})
+		})*/
 	}
 })
+
+
+self.addEventListener('sync', function(event) {
+  if (event.tag == 'sync-favorite') {
+    event.waitUntil(
+	  	dbPromise.then(db => {
+	     	const tx = db.transaction('syncFavoriteStore');
+			const favoriteStore = tx.objectStore('syncFavoriteStore');
+			favoriteStore.getAll().then(favoriteChanges => {
+				favoriteChanges.forEach(change => {
+					const url = `http://localhost:1337/restaurants/${change.id}/?is_favorite=${change.action}`;
+			        fetch(url, { method: 'PUT' }).then(response => { 
+			          	if(response.ok) {			          		
+			          		const txx = db.transaction('syncFavoriteStore', 'readwrite');
+							const favoriteStorex = txx.objectStore('syncFavoriteStore');
+							favoriteStorex.delete(change.id);
+			        	}
+			        });
+				})
+			})
+		})
+
+    );
+  }
+});
+
+
+
 
 function responseFromIdb(request) {
 	return dbPromise.then(db => {
      	const tx = db.transaction('restaurants');
 		const store = tx.objectStore('restaurants');
-    	return store.get('restaurants').then(restaurants => {
-      		return restaurants || fetch(request).then(response => response.json())
-          	.then(json => {
-            	const tx = db.transaction('restaurants', 'readwrite');
-				const store = tx.objectStore('restaurants');
-				store.put(json, 'restaurants');
-            	return json;
-          	})
+    	return store.getAll().then(restaurants => {
+    		if(restaurants.length)
+      			return restaurants
+      		else
+      			return fetch(request).then(response => response.json())
+          		.then(json => {
+            		const tx = db.transaction('restaurants', 'readwrite');
+					const store = tx.objectStore('restaurants');
+					json.forEach(restaurant => {
+						store.put(restaurant, restaurant.id);
+					})
+				
+            		return json;
+          		})
     	}).then(response => new Response(JSON.stringify(response)))
     });
 }

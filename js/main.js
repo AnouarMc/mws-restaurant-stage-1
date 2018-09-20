@@ -3,8 +3,18 @@
  */
 
 if('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js')
+  navigator.serviceWorker.register('/sw.js');
 }
+ 
+const dbPromise = idb.open('restaurant-reviews-dbv1', 1, upgradeDb => {
+  if (!upgradeDb.objectStoreNames.contains('restaurants')) {
+    upgradeDb.createObjectStore('restaurants');
+  }
+  if (!upgradeDb.objectStoreNames.contains('syncFavoriteStore')) {
+    upgradeDb.createObjectStore('syncFavoriteStore')
+  }
+});
+
 
 let restaurants,
   neighborhoods,
@@ -21,6 +31,45 @@ document.addEventListener('DOMContentLoaded', (event) => {
   fetchCuisines();
 });
 
+
+/**
+ * Bind Click event to bookmark buttons
+ */
+bookmarkClick = () => {
+
+  const bookmark = document.querySelectorAll('.icon-heart');
+  bookmark.forEach(icon => {
+    icon.addEventListener('click', (e) => {
+      const el = e.target;
+      const id = el.getAttribute('data-id');
+      const action = !el.classList.contains('active');
+      if('serviceWorker' in navigator && 'SyncManager' in window) {
+        navigator.serviceWorker.ready.then(sw => {
+          const favRest = { id: id, action: action };
+          dbPromise.then(db => {
+            const tx = db.transaction('syncFavoriteStore', 'readwrite');
+            const store = tx.objectStore('syncFavoriteStore');
+            store.put(favRest, favRest.id);
+            return tx.complete;
+          }).then(() => {
+            dbPromise.then(db => {
+              const tx1  = db.transaction('restaurants', 'readwrite');
+              const store = tx1.objectStore('restaurants');
+              store.get(parseInt(favRest.id)).then(restaurant => {
+                restaurant.is_favorite = favRest.action;
+                store.put(restaurant, restaurant.id);
+              })
+              return tx1.complete;
+            })
+            }).then(() => {
+              el.classList.toggle('active');
+              return sw.sync.register('sync-favorite');
+            })//.then(() => alert('syncingg'))
+        })
+      }
+    })
+  })
+}
 /**
  * Fetch all neighborhoods and set their HTML.
  */
@@ -58,6 +107,7 @@ fetchCuisines = () => {
     } else {
       self.cuisines = cuisines;
       fillCuisinesHTML();
+      bookmarkClick();
     }
   });
 }
@@ -174,11 +224,23 @@ createRestaurantHTML = (restaurant) => {
   const f = restaurant.id;
   image.srcset = `./img/${f}.jpg 800w, ./img/${f}-600.jpg 600w, ./img/${f}-400.jpg 400w, ./img/${f}-300.jpg 300w`;
   image.sizes = "(max-width: 550px) 100vw, (max-width: 800px) 50vw, 33.33vw";
-
   li.append(image);
+
+  const nameBookmarkContainer = document.createElement('div');
+  nameBookmarkContainer.className = 'flex-container';
+
   const name = document.createElement('h2');
   name.innerHTML = restaurant.name;
-  li.append(name);
+  nameBookmarkContainer.append(name);
+
+  const bookmark = document.createElement('span');
+  bookmark.className = 'icon-heart';
+  bookmark.setAttribute('data-id', restaurant.id);
+  if(restaurant.is_favorite != undefined && restaurant.is_favorite.toString() == 'true')
+    bookmark.classList.add('active');
+  nameBookmarkContainer.append(bookmark);
+
+  li.append(nameBookmarkContainer);
 
   const neighborhood = document.createElement('p');
   neighborhood.innerHTML = restaurant.neighborhood;
