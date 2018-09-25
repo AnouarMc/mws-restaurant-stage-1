@@ -30,6 +30,18 @@ class DBHelper {
     xhr.send();
   }
 
+  static fetchReviewsById(id, callback) {
+  	let xhr = new XMLHttpRequest();
+    xhr.open('GET', `http://localhost:1337/reviews/?restaurant_id=${parseInt(id)}`);
+    xhr.onload = () => {
+      if (xhr.status === 200) { // Got a success response from server!
+        const reviews = JSON.parse(xhr.responseText);
+        callback(null, reviews);
+      }
+    };
+    xhr.send();
+  }
+
   /**
    * Fetch a restaurant by its ID.
    */
@@ -41,7 +53,10 @@ class DBHelper {
       } else {
         const restaurant = restaurants.find(r => r.id == id);
         if (restaurant) { // Got the restaurant
-          callback(null, restaurant);
+        	DBHelper.fetchReviewsById(id, (error, reviews) => {
+        		restaurant.reviews = reviews;
+        		callback(null, restaurant);
+        	})
         } else { // Restaurant does not exist in the database
           callback('Restaurant does not exist', null);
         }

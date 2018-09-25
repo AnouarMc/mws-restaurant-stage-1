@@ -11,7 +11,10 @@ const dbPromise = idb.open('restaurant-reviews-dbv1', 1, upgradeDb => {
     upgradeDb.createObjectStore('restaurants');
   }
   if (!upgradeDb.objectStoreNames.contains('syncFavoriteStore')) {
-    upgradeDb.createObjectStore('syncFavoriteStore')
+    upgradeDb.createObjectStore('syncFavoriteStore');
+  }
+  if(!upgradeDb.objectStoreNames.contains('syncReviewsStore')) {
+    upgradeDb.createObjectStore('syncReviewsStore');
   }
 });
 

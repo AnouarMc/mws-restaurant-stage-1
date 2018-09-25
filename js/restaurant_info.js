@@ -6,6 +6,19 @@ if('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js')
 }
 
+const dbPromise = idb.open('restaurant-reviews-dbv1', 1, upgradeDb => {
+  if (!upgradeDb.objectStoreNames.contains('restaurants')) {
+    upgradeDb.createObjectStore('restaurants');
+  }
+  if (!upgradeDb.objectStoreNames.contains('syncFavoriteStore')) {
+    upgradeDb.createObjectStore('syncFavoriteStore');
+  }
+  if(!upgradeDb.objectStoreNames.contains('syncReviewsStore')) {
+    upgradeDb.createObjectStore('syncReviewsStore');
+  }
+});
+
+
 let restaurant;
 var newMap;
 
@@ -79,7 +92,7 @@ fetchRestaurantFromURL = (callback) => {
         return;
       }
       fillRestaurantHTML();
-      callback(null, restaurant)
+      callback(null, restaurant);
     });
   }
 }
@@ -148,13 +161,21 @@ fillReviewsHTML = (reviews = self.restaurant.reviews) => {
     const noReviews = document.createElement('p');
     noReviews.innerHTML = 'No reviews yet!';
     container.appendChild(noReviews);
-    return;
   }
-  const ul = document.getElementById('reviews-list');
-  reviews.forEach(review => {
-    ul.appendChild(createReviewHTML(review));
-  });
-  container.appendChild(ul);
+  else {
+    const ul = document.getElementById('reviews-list');
+    reviews.forEach(review => {
+      ul.appendChild(createReviewHTML(review));
+    });
+    container.appendChild(ul);
+  }
+  const button = document.createElement('button');
+  button.textContent = 'Add review';
+  button.className = 'add-review';
+  container.appendChild(button);
+
+  bindModal();
+  bindRemoveButton();
 }
 
 /**
@@ -169,13 +190,18 @@ createReviewHTML = (review) => {
   const name = document.createElement('p');
   name.innerHTML = review.name;
   header.appendChild(name);
+  li.appendChild(header);
 
   const date = document.createElement('p');
-  date.innerHTML = review.date;
+  date.innerHTML = new Date(review.createdAt).toLocaleDateString();
   date.className = 'review-date'
   header.appendChild(date);
 
-  li.appendChild(header);
+  const remove = document.createElement('i');
+  remove.setAttribute('data-id', review.id);
+  remove.className = 'icon-trash';
+  header.appendChild(remove);
+
 
   const rating = document.createElement('p');
   rating.innerHTML = `Rating: ${review.rating}`;
@@ -229,3 +255,121 @@ fixHeader = () => {
 window.onresize = function(event) {
   fixHeader();
 };
+
+/**
+ * Review form modal
+ */
+bindModal = () => {
+  const modalBack = document.querySelector('.modal__back');
+  const modal = document.querySelector('.modal');
+  const modalContent = document.querySelector('.modal__content');
+  const body = document.querySelector('body');
+
+  document.querySelector('button').addEventListener('click', () => {
+    setZindex(modal, modalBack, 2001)
+    modalBack.classList.add('show-back');
+    modal.classList.add('show-modal');
+    body.classList.add('no-scroll');
+  })
+
+  modal.addEventListener('click', () => {
+    modalBack.classList.remove('show-back');
+    modal.classList.remove('show-modal');
+    body.classList.remove('no-scroll');
+    setTimeout(function() {
+      setZindex(modal, modalBack, -2)
+    }, 200);
+  })
+
+  document.querySelector('.close__modal').addEventListener('click', () => {
+    modalBack.classList.remove('show-back');
+    modal.classList.remove('show-modal');
+    body.classList.remove('no-scroll');
+    setTimeout(function() {
+      setZindex(modal, modalBack, -2)
+    }, 200);
+  })
+
+  modalContent.addEventListener('click', e => {
+    e.stopPropagation();
+  })
+
+  modalContent.addEventListener('submit', e => {
+    e.preventDefault();
+    const el = e.srcElement;
+    let urlParams = new URLSearchParams(window.location.search);
+    let restaurant_id = urlParams.get('id');
+    if('serviceWorker' in navigator && 'SyncManager' in window) {
+      navigator.serviceWorker.ready.then(sw => {
+        const rev = {
+          "restaurant_id": restaurant_id,
+          "name": el.querySelector('#reviewer').value,
+          "rating": parseInt(el.querySelector('input[name="rating"]:checked').value),
+          "comments": el.querySelector('#review').value
+        };
+        dbPromise.then(db => {
+            const tx = db.transaction('syncReviewsStore', 'readwrite');
+            const store = tx.objectStore('syncReviewsStore');
+            store.put(rev, rev.restaurant_id);
+            return tx.complete;
+        }).then(() => {
+          const url = `http://localhost:1337/reviews/?restaurant_id=${rev.restaurant_id}`;
+          caches.open('restaurant-reviews-v1').then(cache => {
+            cache.match(url).then(r =>  r.json())
+            .then(json => {
+                json.push(rev);
+                cache.put(url, new Response(JSON.stringify(json)));
+              })
+            })
+          }).then(() => {
+            const li = createReviewHTML(rev);
+            document.querySelector('#reviews-list').appendChild(li);
+            document.querySelector('.close__modal').click();
+            return sw.sync.register('sync-reviews');
+          })
+
+      })
+    }
+  })
+}
+
+
+bindRemoveButton = () => {
+  document.querySelectorAll('.icon-trash').forEach(icon => {
+    icon.addEventListener('click', (e) => {
+      const id = e.target.getAttribute('data-id');
+      let urlParams = new URLSearchParams(window.location.search);
+      let restaurant_id = urlParams.get('id');
+      if('serviceWorker' in navigator && 'SyncManager' in window) {
+        navigator.serviceWorker.ready.then(sw => {
+          const rev = { id: id };
+          dbPromise.then(db => {
+            const tx = db.transaction('syncReviewsStore', 'readwrite');
+            const store = tx.objectStore('syncReviewsStore');
+            store.put(rev, rev.id);
+            return tx.complete;
+          }).then(() => {
+            const url = `http://localhost:1337/reviews/?restaurant_id=${restaurant_id}`;
+            caches.open('restaurant-reviews-v1').then(cache => {
+              cache.match(url).then(r =>  r.json())
+              .then(json => {
+                json = json.filter(r => r.id != id);
+                cache.put(url, new Response(JSON.stringify(json)));
+              })
+            })
+          }).then(() => {
+            e.target.closest('li').remove();
+            return sw.sync.register('sync-reviews');
+          })
+        })
+      }
+    })
+  })
+}
+
+setZindex = (modal, back, value) => {
+  back.style = 'z-index:' + value
+  modal.style = 'z-index: ' + parseInt(value + 1);
+}
+
+

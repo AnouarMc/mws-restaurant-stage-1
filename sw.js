@@ -22,7 +22,8 @@ self.addEventListener('install', event => {
 
 const dbPromise = idb.open('restaurant-reviews-dbv1', 1, upgradeDb => {
 	upgradeDb.createObjectStore('restaurants');
-	upgradeDb.createObjectStore('syncFavoriteStore')
+	upgradeDb.createObjectStore('syncFavoriteStore');
+	upgradeDb.createObjectStore('syncReviewsStore');
 });
 
 
@@ -68,8 +69,28 @@ self.addEventListener('sync', function(event) {
 				})
 			})
 		})
-
     );
+  }
+  else if(event.tag == 'sync-reviews') {
+  	event.waitUntil(
+  		dbPromise.then(db => {
+	     	const tx = db.transaction('syncReviewsStore');
+			const reviewsStore = tx.objectStore('syncReviewsStore');
+			reviewsStore.getAll().then(reviews => {
+				reviews.forEach(review => {
+					if(review.hasOwnProperty('comments'))
+						fetch('http://localhost:1337/reviews/', {
+      						method: 'POST',
+      						body: JSON.stringify(review)
+		    			})
+					else
+						fetch(`http://localhost:1337/reviews/${review.id}`, { 
+							method: 'DELETE' 
+						});
+				})
+			})
+		})
+  	)
   }
 });
 
@@ -101,9 +122,9 @@ function responseFromIdb(request) {
 
 function responseFromCache(request) {
 	return caches.open('restaurant-reviews-v1').then(cache => {
-		return cache.match(request).then(response => {
+		return cache.match(request.url).then(response => {
 			return response || fetch(request).then(response => {
-				cache.put(request, response.clone());
+				cache.put(request.url, response.clone());
 				return response;
 			})
 		})

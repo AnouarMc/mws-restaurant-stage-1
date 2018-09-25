@@ -130,13 +130,13 @@ nav h1 a {
 
 /* Add a color to all links inside the list */
 #breadcrumb li a {
-  color: #0275d8;
+  color: #024F92;
   text-decoration: none;
 }
 
 /* Add a color on mouse-over */
 #breadcrumb li a:hover {
-  color: #01447e;
+  color: #02447E;
   text-decoration: underline;
 }
 
@@ -364,6 +364,7 @@ nav h1 a {
 
 .review-date {
   color: #ccc !important;
+  margin-left: auto;
 }
 
 .icon-heart {
@@ -379,7 +380,7 @@ nav h1 a {
 }
 
 .icon-heart:after {
-  content: "\e900";
+  content: "\e901";
   position: absolute;
   left: 0;
   top: 0;
@@ -390,6 +391,13 @@ nav h1 a {
   transform: scale(1.5);
   opacity: 0;
   transition: all .3s ease-in-out;
+}
+
+.icon-trash {
+  font-size: 20px;
+  cursor: pointer;
+  color: #b60000;
+  padding: 11px 0 13px 15px;
 }
 
 @font-face {
@@ -419,9 +427,147 @@ nav h1 a {
   -moz-osx-font-smoothing: grayscale;
 }
 
-.icon-heart:before {
+.icon-trash:before {
+  content: "\e902";
+}
+.icon-star:before {
   content: "\e900";
 }
+.icon-heart:before {
+  content: "\e901";
+}
+
+
+.no-scroll {
+  overflow: hidden;
+  padding-right: 17px;
+}
+
+.modal__back {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  background: black;
+  z-index: -2;
+  opacity: 0;
+  transition: opacity .2s ease-in-out;
+  overflow: hidden;
+}
+
+.show-back {
+  opacity: .8;
+}
+
+.modal {
+  background: transparent;
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  overflow-y: auto;
+}
+
+.show-modal {
+  opacity: 1;
+}
+
+.modal__content {
+  background: #fff;
+  width: 50%;
+  margin: -150px auto;
+  transition: margin .2s ease-in-out, opacity .2s ease-in-out;
+  opacity: 0;
+  padding: 20px 30px;
+  position: relative;
+  border-radius: 5px;
+}
+
+.title__header {
+  font-size: 20px;
+}
+
+label:not([for^="star"]) {
+  display: block;
+  margin-top: 10px;
+  clear: both;
+}
+
+
+
+input[type="text"], textarea {
+  border-radius: 3px;
+  border: 1px solid #ccc;
+  width: 100%;
+  resize: none;
+  padding: 5px;
+  font-family: inherit;
+}
+
+.add-review {
+  background-color: #b60000;
+  color: #fff;
+  border: none;
+  padding: 5px 10px;
+  margin-top: 10px;
+  border-radius: 3px;
+  transition: background-color .2s;
+}
+
+.add-review:hover {
+  background-color: #d80000;
+}
+
+.close__modal {
+  font-size: 25px;
+  position: absolute;
+  right: 10px;
+  top: 0;
+  cursor: pointer;
+}
+
+.show-modal .modal__content {
+  margin: 50px auto;
+  opacity: 1;
+}
+
+.review-stars {
+  font-size: 20px;
+  color: #ccc;
+}
+
+label:hover .icon-star,
+label:hover ~ label .icon-star,     
+input:checked ~ label .icon-star {
+  color: #b60000;
+}
+
+label:active .icon-star {
+  position:relative;
+  top:1px;
+  left:1px;
+}
+
+input[name="rating"] + label {
+  float: right;
+}
+.review-stars {
+  float: left;
+}
+
+.icon-star {
+  color: #ccc;
+  cursor: pointer;
+}
+
+input[type="radio"] {
+  position: absolute;
+  top: -9999px;
+}
+
 
 
 /* ====================== media queries ====================== */
@@ -447,6 +593,10 @@ nav h1 a {
     margin: auto;
     padding: 30px 0;
   }
+
+  .modal__content {
+    width: 60%;
+  }
 }
 
 @media screen and (max-width: 550px) {
@@ -465,6 +615,10 @@ nav h1 a {
   #reviews-container {
     width: 90%;
   }
+
+  .modal__content {
+    width: 70%;
+  }
 }
 
 @media screen and (max-width: 360px) {
@@ -481,6 +635,10 @@ nav h1 a {
   nav h1 a {
     font-size: 12pt;
     letter-spacing: 5px;
+  }
+
+  .modal__content {
+    width: 80%;
   }
 }
 
