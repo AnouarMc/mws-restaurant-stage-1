@@ -183,6 +183,7 @@ fillReviewsHTML = (reviews = self.restaurant.reviews) => {
  */
 createReviewHTML = (review) => {
   const li = document.createElement('li');
+  li.setAttribute('tabindex', '0');
 
   const header = document.createElement('div');
   header.className = 'review-header';
@@ -260,12 +261,14 @@ window.onresize = function(event) {
  * Review form modal
  */
 bindModal = () => {
+  let beforeFocus;
   const modalBack = document.querySelector('.modal__back');
   const modal = document.querySelector('.modal');
   const modalContent = document.querySelector('.modal__content');
   const body = document.querySelector('body');
 
   document.querySelector('button').addEventListener('click', () => {
+    beforeFocus = document.activeElement;
     setZindex(modal, modalBack, 2001)
     modalBack.classList.add('show-back');
     modal.classList.add('show-modal');
@@ -279,6 +282,19 @@ bindModal = () => {
     setTimeout(function() {
       setZindex(modal, modalBack, -2)
     }, 200);
+    beforeFocus.focus();
+  })
+
+  modalContent.addEventListener('keydown', e => {
+    const close = document.querySelector('.close__modal');
+    //if tab key is tapped and current focus is on last element
+    if(e.key == 'Tab' && document.activeElement == document.querySelector('.add-review[type="submit"]')) {
+      //focus first element
+      close.focus();
+    }
+    else if(e.key == 'Escape') {
+      close.click();
+    }
   })
 
   document.querySelector('.close__modal').addEventListener('click', () => {
@@ -288,6 +304,7 @@ bindModal = () => {
     setTimeout(function() {
       setZindex(modal, modalBack, -2)
     }, 200);
+    beforeFocus.focus();
   })
 
   modalContent.addEventListener('click', e => {

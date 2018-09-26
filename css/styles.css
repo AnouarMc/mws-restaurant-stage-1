@@ -216,7 +216,7 @@ nav h1 a {
 .flex-container {
   display: flex;
 }
-#restaurants-list li h2 {
+#restaurants-list li h3 {
   color: #b60000;
   font-family: Arial,sans-serif;
   font-size: 14pt;
